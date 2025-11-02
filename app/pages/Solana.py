@@ -8,12 +8,12 @@ from datetime import datetime, timezone
 # Page Setup 
 st.set_page_config(page_title="Solana Dashboard", page_icon="🪙", layout="centered")
 BASE_DIR = os.path.dirname(__file__)
-
+APP_DIR = os.path.dirname(BASE_DIR) 
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.title("Solana (SOL)")
-    sol = os.path.join(BASE_DIR, "assets", "solana.jpg")
+    sol = os.path.join(APP_DIR, "assets", "solana.jpg")
     st.image(sol)
 
 

@@ -6,6 +6,7 @@ import streamlit as st
 import altair as alt
 
 BASE_DIR = os.path.dirname(__file__)
+APP_DIR = os.path.dirname(BASE_DIR) 
 ########################################### Page config ################################################
 
 st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout="centered")
@@ -50,7 +51,7 @@ div[role="radiogroup"] svg { display: none !important; } /* hide dots */
 ##------ API base, image path, session state and cooldown timers
 
 API_BASE = os.getenv("XRP_API_BASE", "https://advml-at3-api-25664525.onrender.com")
-xrp = os.path.join(BASE_DIR, "assets", "xrp.jpg")
+xrp = os.path.join(APP_DIR, "assets", "xrp.jpg")
 
 
 

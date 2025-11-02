@@ -23,12 +23,12 @@ os.environ["SERVICE_BTC_PREDICT_URL"] = "https://btc-high-api.onrender.com/predi
 # Purpose: three-column header and hero image (use repo-relative path)
 
 BASE_DIR = os.path.dirname(__file__)
-
+APP_DIR = os.path.dirname(BASE_DIR)  
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.title("Bitcoin (BTC)")
-    bit = os.path.join(BASE_DIR, "assets", "bitcoin.jpg")
+    bit = os.path.join(APP_DIR, "assets", "bitcoin.jpg")
     st.image(bit)
 
 

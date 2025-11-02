@@ -52,8 +52,7 @@ with col2:
     st.image(eth)
     st.write("")
     if st.button("Ethereum"):
-        eth_tab = os.path.join(BASE_DIR, "pages", "Ethereum.py")
-        st.switch_page("Ethereum")
+        st.switch_page("pages/Ethereum.py")
 
 # XRP 
 with col3:
@@ -61,8 +60,7 @@ with col3:
     st.image(xrp)
     st.write("")
     if st.button("XRP", use_container_width=True):
-        xrp_tab = os.path.join(BASE_DIR, "pages", "xrp.py")
-        st.switch_page(xrp_tab)
+        st.switch_page("pages/XRP.py")
     
 # Solana
 with col4:
@@ -70,8 +68,7 @@ with col4:
     st.image(sol)
     st.write("")
     if st.button("Solana", use_container_width=True):
-        sol_tab = os.path.join(BASE_DIR, "pages", "Solana.py")
-        st.switch_page(sol_tab)
+        st.switch_page("pages/Solana.py")
 
 # PROJECT INFO
 st.markdown("---")
