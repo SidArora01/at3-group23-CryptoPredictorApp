@@ -87,11 +87,11 @@ p {
 </style>
 """, unsafe_allow_html=True)
 
-
+#Title and Info
 st.markdown('<div class="section-header"><h2>Ethereum Dashboard</h2><p>The blockchain that powers smart contracts and decentralized apps</p></div>', unsafe_allow_html=True)
 
 
-#Title and Info
+
 col1, col2, col3 = st.columns([1, 4, 1])
 with col2:
     img_col1, img_col2, img_col3 = st.columns([1, 2, 1])
@@ -249,7 +249,6 @@ st.markdown('<div class="section-header"><h2>Key Market Metrics (Latest Daily Ca
 latest = df.iloc[-1]
 previous = df.iloc[-2]
 
-# Compute percentage changes
 def percent_change(new, old):
     try:
         return ((new - old) / old) * 100
@@ -263,7 +262,6 @@ vwap_delta = percent_change(latest['vwap'], previous['vwap'])
 vol_delta = percent_change(latest['volume'], previous['volume'])
 count_delta = percent_change(latest['count'], previous['count'])
 
-# Display metrics with percentage change and arrows
 col1, col2 = st.columns(2)
 col1.metric(
     "Current Price (USD)", 
@@ -306,7 +304,6 @@ col6.metric(
     delta_color="normal"
 )
 
-# Optional custom CSS to enhance metric visuals (larger arrows and bright colors)
 st.markdown("""
 <style>
 [data-testid="stMetricValue"] {
@@ -350,8 +347,8 @@ import requests, time
 
 if st.button("Predict Tomorrow's High Price"):
     with st.spinner("Waking up prediction server... this may take a few minutes if asleep"):
-        max_retries = 60       # total attempts
-        wait_seconds = 10      # time between retries
+        max_retries = 60       
+        wait_seconds = 10      
         data = None
         success = False
 
@@ -375,16 +372,13 @@ if st.button("Predict Tomorrow's High Price"):
             predicted_high = data.get("predicted_tomorrow_high", None)
 
             if predicted_high is not None:
-            # Compare prediction vs today's high
                 latest_high = df.iloc[-1]["high"]
                 diff = predicted_high - latest_high
                 perc_change = (diff / latest_high) * 100
 
-                # Format prediction date
                 date_obj = datetime.datetime.strptime(predicted_date, "%Y-%m-%d")
                 formatted_date = date_obj.strftime("%b %d, %Y")
 
-                # Display results cleanly
                 st.markdown("---")
                 col1, col2 = st.columns(2)
                 with col1:
@@ -394,7 +388,7 @@ if st.button("Predict Tomorrow's High Price"):
                         label="Predicted ETH High (USD)",
                         value=f"${predicted_high:,.2f}",
                         delta=f"{perc_change:+.2f}%",
-                        delta_color="normal"  # auto green for +, red for -
+                        delta_color="normal"  
                     )
 
                 st.success("Prediction successfully fetched!")
