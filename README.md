@@ -163,7 +163,7 @@ The Solana.py page is a dedicated dashboard for Solana (SOL).
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/CryptoPredictorApp.git
+(https://github.com/SidArora01/at3-group23-CryptoPredictorApp.git)
 cd CryptoPredictorApp
 poetry install
 poetry shell
