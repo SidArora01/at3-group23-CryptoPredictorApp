@@ -6,7 +6,7 @@ authors = [
     {name = "SidArora01",email = "arorasidd01@gmail.com"}
 ]
 readme = "README.md"
-requires-python = "3.11.4"
+requires-python = "~3.11.0"
 dependencies = [
     "pandas (==2.2.2)",
     "scikit-learn (==1.5.1)",
