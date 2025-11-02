@@ -40,28 +40,32 @@ st.markdown(
 col1, col2, col3, col4 = st.columns(4, gap="large")
 # Bitcoin
 with col1:
-    st.image("assets/bitcoin.jpg", width=200)
+    bitcoin = os.path.join(BASE_DIR, "assets", "bitcoin.jpg")
+    st.image(bitcoin, use_container_width=True)
     st.write("")  # spacing
     if st.button("Bitcoin", use_container_width=True):
         st.switch_page("pages/Bitcoin.py")
 
 # Ethereum
 with col2:
-    st.image("assets/ethereum.jpg", width=200)
+    eth = os.path.join(BASE_DIR, "assets", "ethereum.jpg")    
+    st.image(eth, use_container_width=True)
     st.write("")
     if st.button("Ethereum", use_container_width=True):
         st.switch_page("pages/Ethereum.py")
 
 # XRP 
 with col3:
-    st.image("assets/xrp.jpg", width=200)
+    xrp = os.path.join(BASE_DIR, "assets", "xrp.jpg")
+    st.image(xrp,use_container_width=True)
     st.write("")
     if st.button("XRP", use_container_width=True):
         st.switch_page("pages/XRP.py")
     
 # Solana
 with col4:
-    st.image("assets/solana.jpg", width=200)
+    sol = os.path.join(BASE_DIR, "assets", "solana.jpg")
+    st.image(sol, use_container_width=True)
     st.write("")
     if st.button("Solana", use_container_width=True):
         st.switch_page("pages/Solana.py")

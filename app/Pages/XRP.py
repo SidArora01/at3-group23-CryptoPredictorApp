@@ -5,7 +5,7 @@ import numpy as np
 import streamlit as st
 import altair as alt
 
-
+BASE_DIR = os.path.dirname(__file__)
 ########################################### Page config ################################################
 
 st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout="centered")
@@ -50,7 +50,8 @@ div[role="radiogroup"] svg { display: none !important; } /* hide dots */
 ##------ API base, image path, session state and cooldown timers
 
 API_BASE = os.getenv("XRP_API_BASE", "https://advml-at3-api-25664525.onrender.com")
-IMAGE_PATH = ("assets/xrp.jpg")
+xrp = os.path.join(BASE_DIR, "assets", "xrp.jpg")
+
 
 
 HISTORY_TTL = 300  #5 min
@@ -130,7 +131,7 @@ def _img_b64(path):
     with open(path, "rb") as f: return base64.b64encode(f.read()).decode()
 
 st.markdown(
-    f"<div style='text-align:center;margin-top:-10px;'><img src='data:image/png;base64,{_img_b64(IMAGE_PATH)}' width='200'></div>",
+    f"<div style='text-align:center;margin-top:-10px;'><img src='data:image/png;base64,{_img_b64(xrp)}' width='200'></div>",
     unsafe_allow_html=True
 )
 st.markdown("<br>", unsafe_allow_html=True)

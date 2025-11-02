@@ -8,6 +8,7 @@ import time
 import datetime
 from datetime import timezone
 
+BASE_DIR = os.path.dirname(__file__)
 
 st.set_page_config(page_title="Ethereum", page_icon="💎", layout="centered")
 
@@ -17,7 +18,8 @@ with col2:
     st.title("Ethereum Dashboard")
     img_col1, img_col2, img_col3 = st.columns([1, 2, 1])
     with img_col2:
-        st.image("assets/eth.svg", width=200)
+        eth = os.path.join(BASE_DIR, "assets", "eth.svg")
+        st.image(eth)
 
 st.subheader("The blockchain that powers smart contracts and decentralized apps")
 st.write("""
