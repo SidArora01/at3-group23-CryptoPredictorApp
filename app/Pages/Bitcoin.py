@@ -1,4 +1,4 @@
-# %%
+# Bitcoin
 # --- Imports (clean and organized) ---
 
 # Standard library
