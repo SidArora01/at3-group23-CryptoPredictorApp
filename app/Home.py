@@ -53,7 +53,7 @@ with col2:
     st.write("")
     if st.button("Ethereum", use_container_width=True):
         eth_tab = os.path.join(BASE_DIR, "pages", "Ethereum.py")
-        st.switch_page(eth_tab)
+        st.switch_page("Ethereum")
 
 # XRP 
 with col3:
