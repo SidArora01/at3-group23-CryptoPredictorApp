@@ -1,6 +1,7 @@
 #Home
 import streamlit as st
 from datetime import date
+import os
 
 st.set_page_config(
     page_title="Cryptocurrency Prediction Dashboard",
@@ -19,9 +20,11 @@ st.markdown(
     Welcome to the Hub! Ready to dive into the world of crypto? We’ve built an interactive data product designed to **analyze and predict** the short-term performance of today’s most popular cryptocurrencies.  
     """
 )
+BASE_DIR = os.path.dirname(__file__)
 
 # VISUAL REPRESENTATION 
-st.image("assets/image2.jpg")
+image2 = os.path.join(BASE_DIR, "assets", "image2.jpg")
+st.image(image2)
 
 
 #INSTRUCTIONS FOR THE USER
