@@ -15,7 +15,83 @@ import streamlit as st
 
 # --- Page config ---
 
-st.set_page_config(page_title="Bitcoin Dashboard", page_icon="₿", layout="centered")
+st.markdown("""
+<style>
+/* Body & background */
+body {
+    background: linear-gradient(135deg, #1f1c2c, #282843);
+    color: #f0f0f0;
+}
+
+/* Fonts */
+h1, h2, h3 {
+    font-family: 'Poppins', sans-serif;
+}
+p {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+/* Crypto cards */
+.crypto-card {
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+    text-align: center;
+    background-color: #2a2a3e;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.crypto-card:hover {
+    transform: scale(1.05);
+}
+
+/* Images hover effect */
+.crypto-card img {
+    border-radius: 15px;
+    transition: transform 0.3s ease-in-out;
+}
+.crypto-card img:hover {
+    transform: scale(1.05);
+}
+
+/* Buttons */
+.stButton>button {
+    background: linear-gradient(45deg, #ff9900, #ff6600);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+.stButton>button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(255, 153, 0, 0.6);
+}
+
+/* Section header */
+.section-header {
+    background-color: #3a3a55;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+.section-header h2 {
+    color: #ff9900;
+    margin: 0;
+}
+.section-header p {
+    color: #ffffff;
+    margin: 5px 0 0 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+st.set_page_config(page_title="Bitcoin Dashboard", page_icon="₿", layout="wide")
 
 os.environ["SERVICE_BTC_PREDICT_URL"] = "https://btc-high-api.onrender.com/predict/bitcoin"
 
@@ -25,22 +101,25 @@ os.environ["SERVICE_BTC_PREDICT_URL"] = "https://btc-high-api.onrender.com/predi
 BASE_DIR = os.path.dirname(__file__)
 APP_DIR = os.path.dirname(BASE_DIR)  
 
-col1, col2, col3 = st.columns([1, 2, 1])
+st.markdown('<div class="section-header"><h2>Bitcoin Dashboard</h2><p>World’s first decentralized digital currency</p></div>', unsafe_allow_html=True)
+
+
+col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
-    st.title("Bitcoin (BTC)")
-    bit = os.path.join(APP_DIR, "assets", "bitcoin.jpg")
+    bit = os.path.join(APP_DIR, "assets", "btc.png")
     st.image(bit)
 
 
 # %%
 # Purpose: short context about BTC
 
-st.subheader("The world’s first decentralized digital currency")
 st.write("""
 **Bitcoin (BTC)** was created in 2009 by the pseudonymous developer *Satoshi Nakamoto*.
 It remains the most valuable and widely recognized cryptocurrency, often described as
 **digital gold** due to its limited supply of 21 million coins.
 """)
+
+st.markdown("---")
 
 # --- Current UTC time and explanation ---
 
@@ -63,329 +142,324 @@ st.caption(
 st.markdown("---")
 
 
-# %%
-# --- Step 1: Fetch and prepare CoinGecko OHLC data (90 days) ---
+# --- Step 1: Fetch and prepare Kraken OHLC data (daily, last N days) ---
 
-@st.cache_data(ttl=600)  # cache for 10 minutes
-def get_coingecko_ohlc(days: int = 90):
+@st.cache_data(ttl=3600)  # cache for 1 hour (Kraken is stable; reduces API hits)
+def get_kraken_ohlc(days: int = 90, pair: str = "XXBTZUSD", interval: int = 1440):
     """
-    Fetch daily OHLC data for Bitcoin from CoinGecko.
-    Returns a pandas DataFrame with UTC dates and open, high, low, close.
+    Fetch daily OHLC for Bitcoin from Kraken.
+    - pair: "XXBTZUSD" = BTC/USD on Kraken
+    - interval: 1440 = 1 day candles
+    Returns DataFrame: timestamp (UTC), open, high, low, close, volume.
     """
-    url = f"https://api.coingecko.com/api/v3/coins/bitcoin/ohlc"
-    params = {"vs_currency": "usd", "days": days}
+    url = "https://api.kraken.com/0/public/OHLC"
+    params = {"pair": pair, "interval": interval}
 
     try:
         r = requests.get(url, params=params, timeout=20)
         r.raise_for_status()
-        data = r.json()
-        # Convert to DataFrame
-        df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close"])
-        # Convert UNIX ms → datetime UTC
-        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
+        payload = r.json()
+
+        if payload.get("error"):
+            raise RuntimeError(", ".join(payload["error"]))
+
+        key = next(iter(payload["result"].keys()))
+        rows = payload["result"][key]
+
+        df = pd.DataFrame(
+            rows,
+            columns=["ts", "open", "high", "low", "close", "vwap", "volume", "count"]
+        )
+        # Convert ts → datetime UTC
+        df["timestamp"] = pd.to_datetime(df["ts"], unit="s", utc=True)
         df = df.sort_values("timestamp").reset_index(drop=True)
-        return df
+
+        # Convert numeric columns to float (skip timestamp)
+        for col in ["open", "high", "low", "close", "vwap", "volume", "count"]:
+            df[col] = df[col].astype(float)
+
+        # Keep only last N days
+        if days and len(df) > days:
+            df = df.tail(days).reset_index(drop=True)
+
+        return df[["timestamp", "open", "high", "low", "close", "volume"]]
 
     except Exception as e:
-        st.warning(f"⚠️ Failed to fetch OHLC data: {e}")
+        st.warning(f"⚠️ Failed to fetch Kraken OHLC data: {e}")
         return pd.DataFrame()
 
-# Fetch and preview
-df_ohlc = get_coingecko_ohlc(90)
+# Fetch and validate
+df_ohlc = get_kraken_ohlc(90)
 
 if df_ohlc.empty:
-    st.warning("⚠️ Failed to fetch OHLC data or dataset is empty; stopping app.")
+    st.warning("⚠️ Failed to fetch Kraken OHLC data or dataset is empty; stopping app.")
     st.stop()
 
 
-# %%
-# --- Step 2: Fetch and merge Volume & Market Cap data (CoinGecko market_chart) ---
-
-@st.cache_data(ttl=600)
-def get_coingecko_market_chart(days: int = 90):
-    """
-    Fetch daily market data for Bitcoin from CoinGecko.
-    Returns a DataFrame with UTC timestamps, volume, and market_cap.
-    """
-    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
-    params = {"vs_currency": "usd", "days": days, "interval": "daily"}
-
-    try:
-        r = requests.get(url, params=params, timeout=20)
-        r.raise_for_status()
-        data = r.json()
-
-        # Convert nested lists to DataFrames
-        df_vol = pd.DataFrame(data["total_volumes"], columns=["timestamp", "volume"])
-        df_cap = pd.DataFrame(data["market_caps"], columns=["timestamp", "market_cap"])
-
-        # Merge on timestamp (both are UNIX ms UTC)
-        df_vol["timestamp"] = pd.to_datetime(df_vol["timestamp"], unit="ms", utc=True)
-        df_cap["timestamp"] = pd.to_datetime(df_cap["timestamp"], unit="ms", utc=True)
-        df = pd.merge(df_vol, df_cap, on="timestamp", how="outer").sort_values("timestamp")
-
-        return df.reset_index(drop=True)
-
-    except Exception as e:
-        st.warning(f"⚠️ Failed to fetch volume/market cap data: {e}")
-        return pd.DataFrame()
-
-# Fetch and merge with df_ohlc
-df_market = get_coingecko_market_chart(90)
-
-if not df_market.empty and not df_ohlc.empty:
-    # Merge OHLC with market data on UTC timestamp
-    df_full = pd.merge(df_ohlc, df_market, on="timestamp", how="left")
-    
-# Now df_full contains: timestamp, open, high, low, close, volume, market_cap
 
 # %%
-# --- Step 3: Historical Trends with better zoom, tooltips & styling ---
-# Purpose: build two interactive charts:
-#  (A) 4-line chart for open/high/low/close with tighter y-range + last-3 markers
-#  (B) Split high–low range bars (low→close, close→high) with a close marker, no empty gaps
+# --- Step 2: Build unified frame (Kraken has volume; market cap not provided) ---
+
+# Kraken does not provide market_cap. Create a placeholder so downstream code keeps working.
+df_full = df_ohlc.copy()
+df_full["market_cap"] = np.nan  # placeholder; we’ll decide later whether to drop or compute proxy
+
+# Now df_full columns: timestamp, open, high, low, close, volume, market_cap (NaN)
 
 
-# Guard: ensure merged data is available
-if 'df_full' in locals() and not df_full.empty:
+# %%
+# --- Step 3: Historical Trends (Kraken daily candles) ---
+# Purpose:
+#   (A) 4-line chart for open/high/low/close with tighter y-range + last-3 markers
+#   (B) Split high–low range bars (low→close, close→high) with a close marker
+#   Uses a slider to "zoom" by limiting the visible window (ordinal x doesn't scale-zoom well)
+
+import altair as alt
+import pandas as pd
+import numpy as np
+import streamlit as st
+
+# Guard: ensure merged Kraken OHLC is available (built earlier as df_full)
+if 'df_full' in locals() and isinstance(df_full, pd.DataFrame) and not df_full.empty:
 
     # Prep a plotting frame
     df_plot = df_full.copy()
-    df_plot["date"] = df_plot["timestamp"].dt.date  # datetime -> date for clean axis labels
+    # Add both a temporal date (for continuous x) and a string date (for ordinal x)
+    df_plot["date"] = df_plot["timestamp"].dt.date
+    df_plot["date_str"] = df_plot["timestamp"].dt.strftime("%Y-%m-%d")
 
-    st.header("Historical Trends")
-    st.info("Price movements of Bitcoin (Open, High, Low, Close) over the past ~90 days (CoinGecko OHLC replies every 4 days data for 90 days query). All times in UTC.")
+    st.markdown('<div class="section-header"><h2>Historical Trends</h2></div>', unsafe_allow_html=True)
 
-    # -------- (A) LINE CHART: 4 series + tighter y-range + last-3 markers --------
+    st.info(
+        "Price movements of Bitcoin (Open, High, Low, Close) using **Kraken daily candles**. "
+        "All times are UTC."
+    )
 
-    recent = df_plot.tail(12)  # ~last 12 candles
-    y_min = float(recent[["open", "high", "low", "close"]].min().min()) * 0.98
-    y_max = float(recent[["open", "high", "low", "close"]].max().max()) * 1.02
+    # ---- Global window slider to control both charts ----
+    max_len = int(min(180, len(df_plot)))  # cap for performance
+    default_window = 60 if max_len >= 60 else max_len
+    window_days = st.slider(
+        "Visible window (days)", min_value=15, max_value=max_len,
+        value=default_window, step=1,
+        help="Adjust to zoom/pan both charts."
+    )
 
-    base = (
-        alt.Chart(df_plot)
+    # Slice to the requested window (most recent N days)
+    df_win = df_plot.tail(window_days).reset_index(drop=True)
+
+    # =====================  (A) LINE CHART  =====================
+    # Tighter y-range based on what's visible
+    y_min = float(df_win[["open", "high", "low", "close"]].min().min()) * 0.985
+    y_max = float(df_win[["open", "high", "low", "close"]].max().max()) * 1.015
+
+    base_line = (
+        alt.Chart(df_win)
         .encode(x=alt.X("date:T", title="Date (UTC)"))
-        .properties(width=900, height=500)
+        .properties(height=420)
     )
 
     line_chart = (
-        base.transform_fold(
-            ["open", "high", "low", "close"], 
+        base_line
+        .transform_fold(
+            ["open", "high", "low", "close"],
             as_=["variable", "value"]
         )
         .mark_line(strokeWidth=2)
         .encode(
-            y=alt.Y("value:Q", title="Price (USD)", scale=alt.Scale(domain=[y_min, y_max])),
+            y=alt.Y("value:Q", title="Price (USD)",
+                    scale=alt.Scale(domain=[y_min, y_max])),
             color=alt.Color("variable:N", title="Series"),
             tooltip=[
-                alt.Tooltip("date:T", title="Date (UTC)"),
+                alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("variable:N", title="Series"),
                 alt.Tooltip("value:Q", title="Price", format=",.2f"),
             ],
         )
-        .properties(title="Bitcoin OHLC – Last ~90 Days (4-day candles)")
+        .properties(title="Bitcoin OHLC — Last N Days (Kraken daily)")
     )
 
-    # Highlight the last 3 rows (use close markers + labels)
-    last3 = df_plot.tail(3)
+    # Mark the last 3 closes in the visible window
+    last3 = df_win.tail(3)
     markers = (
         alt.Chart(last3)
         .mark_point(size=80, filled=True)
         .encode(
             x="date:T",
             y="close:Q",
-            tooltip=[alt.Tooltip("date:T"), alt.Tooltip("close:Q", title="Close", format=",.2f")],
+            tooltip=[
+                alt.Tooltip("date:T", title="Date"),
+                alt.Tooltip("close:Q", title="Close", format=",.2f"),
+            ],
         )
     )
     labels = (
         alt.Chart(last3)
-        .mark_text(align="left", dx=5, dy=-5)
+        .mark_text(align="left", dx=6, dy=-6)
         .encode(x="date:T", y="close:Q", text=alt.Text("close:Q", format=",.0f"))
     )
 
     st.altair_chart(
-        (line_chart + markers + labels).configure_axis(grid=True).interactive(),  # interactive = zoom/pan
+        (line_chart + markers + labels).configure_axis(grid=True).interactive(),
         use_container_width=True
     )
 
-    # -------- (B) RANGE BAR: split low→close and close→high, remove empty day gaps --------
-
-    # Use ordinal x to avoid gaps between non-daily candles
-
-    df_plot2 = df_plot.copy()
-    df_plot2["date_str"] = df_plot2["timestamp"].dt.strftime("%Y-%m-%d")
-
-    # Y zoom for the range plot (based on recent window)
-    y_min2 = float(recent["low"].min()) * 0.98
-    y_max2 = float(recent["high"].max()) * 1.02
+    # =====================  (B) RANGE BAR CHART  =====================
+    # Ordinal x -> no true drag-zoom; use the same window slider for a clean zoom experience
+    y_min2 = float(df_win["low"].min()) * 0.985
+    y_max2 = float(df_win["high"].max()) * 1.015
 
     low_to_close = (
-        alt.Chart(df_plot2)
-        .mark_bar(size=8, opacity=0.8)
+        alt.Chart(df_win)
+        .mark_bar(size=8, opacity=0.85, color="#4C78A8")
         .encode(
             x=alt.X("date_str:O", title="Date (UTC)"),
-            y=alt.Y("low:Q", title="Low ↔ High", scale=alt.Scale(domain=[y_min2, y_max2])),
+            y=alt.Y("low:Q", title="Low ↔ High",
+                    scale=alt.Scale(domain=[y_min2, y_max2])),
             y2="close:Q",
-            color=alt.value("#4C78A8"),  # segment color 1
             tooltip=[
-                alt.Tooltip("date_str:O", title="Date (UTC)"),
-                alt.Tooltip("low:Q", title="Low", format=",.2f"),
+                alt.Tooltip("date_str:O", title="Date"),
+                alt.Tooltip("low:Q", title="Low",   format=",.2f"),
                 alt.Tooltip("close:Q", title="Close", format=",.2f"),
-                alt.Tooltip("high:Q", title="High", format=",.2f"),
+                alt.Tooltip("high:Q", title="High",  format=",.2f"),
             ],
         )
-        .properties(width=900, height=500, title="High–Low Range with Close Marker (4-day candles)")
+        .properties(height=420, title="High–Low Range with Close Marker (Kraken daily)")
     )
 
     close_to_high = (
-        alt.Chart(df_plot2)
-        .mark_bar(size=8, opacity=0.8)
-        .encode(
-            x="date_str:O",
-            y="close:Q",
-            y2="high:Q",
-            color=alt.value("#F58518"),  # segment color 2
-        )
+        alt.Chart(df_win)
+        .mark_bar(size=8, opacity=0.85, color="#F58518")
+        .encode(x="date_str:O", y="close:Q", y2="high:Q")
     )
 
     close_points = (
-        alt.Chart(df_plot2)
+        alt.Chart(df_win)
         .mark_point(size=55, filled=True)
         .encode(x="date_str:O", y="close:Q")
     )
 
     st.altair_chart(
-        (low_to_close + close_to_high + close_points).configure_axis(grid=True).interactive(),
+        (low_to_close + close_to_high + close_points).configure_axis(grid=True),
         use_container_width=True
     )
 
 else:
-    st.warning("⚠️ Historical data not available for plotting.")
+    st.warning("⚠️ Historical data not available for plotting (Kraken OHLC frame is empty).")
 
+
+st.markdown("---")
 
 # %%
-# --- Step 4: Key Market Metrics ---
-#
+# --- Step 4: Key Market Metrics (Kraken) ---
 # Purpose:
-#   A) 24h KPIs (spot, 24h change %, 24h volume, market cap)
-#   B) Last 10 days daily panel (close, volume, market cap, returns)
-#      - Table shows volume/market_cap in **millions** with comma separators (string view)
-#      - Charts keep numeric values (millions) for proper scaling
+#   A) 24h KPIs from Kraken Ticker (spot, ≈24h change using 24h VWAP, 24h volume, 24h VWAP)
+#   B) Last 10 days daily panel (open/high/low/close/volume/return_%) with a pretty table
+#      + two mini charts (Close line, Volume bar). All values in UTC.
 
-# ---------- A) 24h metrics (CoinGecko simple/price) ----------
+import math
+import pandas as pd
+import altair as alt
+import streamlit as st
+from datetime import datetime, timezone
+import requests
 
-@st.cache_data(ttl=300)  # refresh every 5 minutes
-def get_coingecko_24h():
-    """Return dict with price, 24h change %, 24h volume, market cap, last_updated_at (UTC)."""
-    url = "https://api.coingecko.com/api/v3/simple/price"
-    params = {
-        "ids": "bitcoin",
-        "vs_currencies": "usd",
-        "include_24hr_change": "true",
-        "include_24hr_vol": "true",
-        "include_market_cap": "true",
-        "include_last_updated_at": "true",
-    }
-    r = requests.get(url, params=params, timeout=20)
+# ---------- A) 24h metrics (Kraken Ticker) ----------
+
+@st.cache_data(ttl=120)  # refresh often; ticker is live
+def get_kraken_ticker(pair: str = "XXBTZUSD"):
+    """
+    Kraken Ticker returns last price and 24h stats.
+    Fields: 'c' (last), 'v' (vol today, vol 24h), 'p' (vwap today, vwap 24h),
+            'h' (high today, high 24h), 'l' (low today, low 24h), 'o' (today open).
+    """
+    r = requests.get("https://api.kraken.com/0/public/Ticker", params={"pair": pair}, timeout=15)
     r.raise_for_status()
-    d = r.json()["bitcoin"]
+    payload = r.json()
+    if payload.get("error"):
+        raise RuntimeError(", ".join(payload["error"]))
+    key = next(iter(payload["result"].keys()))
+    t = payload["result"][key]
     return {
-        "price": d.get("usd"),
-        "change_24h_pct": d.get("usd_24h_change"),
-        "volume_24h": d.get("usd_24h_vol"),
-        "market_cap": d.get("usd_market_cap"),
-        "last_updated_at": datetime.fromtimestamp(d.get("last_updated_at", 0), tz=timezone.utc),
+        "last": float(t["c"][0]),      # last traded price (USD)
+        "vol_24h": float(t["v"][1]),   # volume over the last 24h (BTC)
+        "vwap_24h": float(t["p"][1]),  # volume-weighted avg price over the last 24h (USD)
+        "open_today": float(t["o"]),   # today's opening price (USD)
+        "ts_utc": datetime.now(timezone.utc),
     }
 
-# ---------- B) Last 10 daily (CoinGecko market_chart) ----------
+# Small helper other steps can reuse
+def get_spot_price_usd():
+    try:
+        return float(get_kraken_ticker()["last"])
+    except Exception:
+        return float("nan")
 
-@st.cache_data(ttl=600)
-def get_coingecko_daily_10():
-    """
-    Fetch last 10 daily closes, volumes, and market caps for BTC.
-    Returns a tidy DataFrame with date (UTC), close, volume, market_cap and daily return %.
-    """
-    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
-    params = {"vs_currency": "usd", "days": 10, "interval": "daily"}
-    r = requests.get(url, params=params, timeout=20)
-    r.raise_for_status()
-    data = r.json()
-
-    # Build frames
-    df_p = pd.DataFrame(data["prices"], columns=["ts", "close"])
-    df_v = pd.DataFrame(data["total_volumes"], columns=["ts", "volume"])
-    df_mc = pd.DataFrame(data["market_caps"], columns=["ts", "market_cap"])
-
-    # Convert time and merge
-    for df in (df_p, df_v, df_mc):
-        df["ts"] = pd.to_datetime(df["ts"], unit="ms", utc=True)
-    df = (
-        df_p.merge(df_v, on="ts")
-            .merge(df_mc, on="ts")
-            .sort_values("ts")
-            .reset_index(drop=True)
-    )
-
-    # Derive date + daily return %
-    df["date"] = df["ts"].dt.date
-    df["ret_pct"] = df["close"].pct_change() * 100.0
-    return df[["date", "close", "volume", "market_cap", "ret_pct"]]
-
-
-# ---------------- Render ----------------
-
-# 24h KPIs
+# ----- Render A) KPIs -----
 try:
-    m24 = get_coingecko_24h()
-    st.header("Key Market Metrics")
+    m24 = get_kraken_ticker()
+    # Approximate 24h change using last vs 24h VWAP (Kraken doesn’t expose “price 24h ago” directly)
+    pct_24h = ((m24["last"] - m24["vwap_24h"]) / m24["vwap_24h"]) * 100.0 if m24["vwap_24h"] else float("nan")
+
+
+    st.markdown('<div class="section-header"><h2>Key Market Metrics</h2></div>', unsafe_allow_html=True)
+
+    st.info("Aggregated from Kraken (1-day interval). All values in UTC. VOLUME not available in USD on Kraken.")
 
     c1, c2 = st.columns(2)
-    c1.metric("Spot Price (USD)", f"${m24['price']:,.2f}")
-    c2.metric("24h Change", f"{m24['change_24h_pct']:.3f}%")
+    c1.metric("Spot Price (USD)", f"${m24['last']:,.2f}")
+    c2.metric("≈ 24h Change", f"{pct_24h:+.3f}%")
     c3, c4 = st.columns(2)
-    c3.metric("24h Volume (USD)", f"${m24['volume_24h']/1000000:,.2f} M")
-    c4.metric("Market Cap (USD)", f"${m24['market_cap']/1000000:,.2f} M")
-    st.caption(f"Last updated: {m24['last_updated_at'].strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    c3.metric("24h Volume not Available", f"{m24['vol_24h']/1000000:,.2f} M")
+    c4.metric("24h VWAP (USD)", f"${m24['vwap_24h']/1000000:,.2f} M")
+    st.caption(f"Last updated: {m24['ts_utc'].strftime('%Y-%m-%d %H:%M:%S UTC')}")
 except Exception as e:
-    st.warning(f"⚠️ Could not fetch 24h stats: {e}")
+    st.warning(f"⚠️ Could not fetch Kraken ticker: {e}")
 
-# 10-day panel
+# ---------- B) Last 10 days (built from Kraken OHLC set in Step 2) ----------
+
+@st.cache_data(ttl=3600)
+def build_daily_last10_from_ohlc(df_ohlc: pd.DataFrame) -> pd.DataFrame:
+    """
+    From Kraken daily OHLC (df_full), keep last 10 rows and compute day-over-day return %.
+    Expects columns: timestamp, open, high, low, close, volume
+    """
+    if df_ohlc is None or df_ohlc.empty:
+        return pd.DataFrame()
+    df10 = df_ohlc.tail(10).copy().reset_index(drop=True)
+    df10["date"] = df10["timestamp"].dt.date
+    df10["return_%"] = df10["close"].pct_change() * 100.0
+    return df10[["date", "open", "high", "low", "close", "volume", "return_%"]]
+
 try:
-    df10 = get_coingecko_daily_10()
+    # df_full should have been produced in Step 2 (Kraken OHLC merge)
+    df10 = build_daily_last10_from_ohlc(df_full if "df_full" in locals() else pd.DataFrame())
     if not df10.empty:
-        # Metrics
+        # Summary metrics
         avg_vol_10d = df10["volume"].mean()
-        vol_10d = df10["ret_pct"].std(ddof=1)  # volatility ≈ stdev of daily returns
+        vol_10d = df10["return_%"].std(ddof=1)
 
         st.subheader("Last 10 Days (Daily)")
         mc1, mc2 = st.columns(2)
-        mc1.metric("10-Day Avg Volume", f"${avg_vol_10d/1_000_000:,.2f} M")
+        mc1.metric("10-Day Avg Volume (BTC)", f"{avg_vol_10d:,.2f}")
         mc2.metric("10-Day Volatility (σ of returns)", f"{vol_10d:.2f}%")
 
-
-        # ---- Table: show volume & market_cap in millions with commas (string view) ----
-
-        df10_disp = df10.copy()
-        df10_disp["volume_M"] = df10_disp["volume"] / 1_000_000
-        df10_disp["market_cap_M"] = df10_disp["market_cap"] / 1_000_000
-
-        df10_tbl = pd.DataFrame({
-            "date": df10_disp["date"],
-            "close": df10_disp["close"].map(lambda x: f"{x:,.4f}"),
-            "volume (M USD)": df10_disp["volume_M"].map(lambda x: f"{x:,.2f}"),
-            "market_cap (M USD)": df10_disp["market_cap_M"].map(lambda x: f"{x:,.2f}"),
-            "return_%": df10_disp["ret_pct"].map(lambda x: "" if pd.isna(x) else f"{x:.2f}"),
+        # ---- Pretty table view (commas + 2 decimals). Keep numeric df10 for charts. ----
+        df10_fmt = pd.DataFrame({
+            "date": df10["date"],
+            "open":   df10["open"].map(lambda x: f"{x:,.2f}"),
+            "high":   df10["high"].map(lambda x: f"{x:,.2f}"),
+            "low":    df10["low"].map(lambda x: f"{x:,.2f}"),
+            "close":  df10["close"].map(lambda x: f"{x:,.2f}"),
+            "volume (BTC)": df10["volume"].map(lambda x: f"{x:,.2f}"),
+            "return_%": df10["return_%"].map(lambda x: "" if pd.isna(x) else f"{x:.2f}"),
         })
+        st.dataframe(df10_fmt, hide_index=True, use_container_width=True)
 
-        st.dataframe(df10_tbl, hide_index=True, use_container_width=True)
-
-
-        # ---- Charts: keep numeric frame (millions) ----
-
+        # ---- Mini charts (use numeric df10) ----
         left, right = st.columns(2)
 
         close_chart = (
-            alt.Chart(df10_disp)
+            alt.Chart(df10)
             .mark_line(point=True)
             .encode(
                 x=alt.X("date:T", title="Date (UTC)"),
@@ -393,7 +467,7 @@ try:
                 tooltip=[
                     alt.Tooltip("date:T", title="Date"),
                     alt.Tooltip("close:Q", title="Close", format=",.2f"),
-                    alt.Tooltip("ret_pct:Q", title="Return %", format=".2f"),
+                    alt.Tooltip("return_%:Q", title="Return %", format=".2f"),
                 ],
             )
             .properties(height=260)
@@ -402,14 +476,14 @@ try:
         left.altair_chart(close_chart, use_container_width=True)
 
         vol_chart = (
-            alt.Chart(df10_disp)
+            alt.Chart(df10)
             .mark_bar()
             .encode(
                 x=alt.X("date:T", title="Date (UTC)"),
-                y=alt.Y("volume_M:Q", title="Volume (M USD)"),
+                y=alt.Y("volume:Q", title="Volume (BTC)"),
                 tooltip=[
                     alt.Tooltip("date:T", title="Date"),
-                    alt.Tooltip("volume_M:Q", title="Volume (M USD)", format=",.2f"),
+                    alt.Tooltip("volume:Q", title="Volume (BTC)", format=",.2f"),
                 ],
             )
             .properties(height=260)
@@ -418,16 +492,19 @@ try:
         right.altair_chart(vol_chart, use_container_width=True)
 
     else:
-        st.warning("⚠️ No 10-day daily data available.")
+        st.warning("⚠️ No 10-day data available from Kraken.")
 except Exception as e:
-    st.warning(f"⚠️ Could not fetch 10-day data: {e}")
+    st.warning(f"⚠️ Could not build 10-day panel: {e}")
+
 
 
 
 # %%
 # Purpose: placeholder for next-day HIGH prediction
 
-st.header("Machine Learning Predictions")
+
+st.markdown('<div class="section-header"><h2>Machine Learning Predictions</h2></div>', unsafe_allow_html=True)
+
 st.info("This section will display the Next-Day High Price prediction using ElasticNet v1 model. You only need to provide the 7 RAW input features as described next:")
 
 
@@ -477,186 +554,195 @@ st.info("This section will display the Next-Day High Price prediction using Elas
 #     st.error(f"❌ Unable to reach FastAPI. Details: {e}")
 
 # %%
-# --- Step 5: ML Prediction input modes (Yesterday / Today / Manual) ---
+# --- Step 5: ML Prediction input modes (Yesterday / Today / Manual) WITH pretty previews ---
 # Purpose:
-#   Provide 3 ways to prepare the 7 RAW inputs required by the FastAPI endpoint.
-#   Display inputs with 2 decimals in the boxes, plus a comma-formatted preview underneath.
+#   • Three editable input modes, each producing the 7 raw features the FastAPI expects.
+#   • Each numeric input shows a small, formatted preview with thousands separators.
+#   • Values are saved in st.session_state as: inputs_yday / inputs_today / inputs_manual
 
+import numpy as np
+import pandas as pd
+import streamlit as st
+from datetime import datetime, timezone
 
 st.subheader("Next-Day HIGH Prediction — Input Modes")
-st.markdown(
-    """
-Choose an input mode. All timestamps and data are UTC.<br><br>
-**Note:** CoinGecko `/ohlc` uses ~4-day “candles” for long lookbacks. We pre-fill **open** (for `body`) from that source.<br><br>
-Daily **close/volume** come from `market_chart` (last 10 days). You can edit any value below.<br><br>
-**Manual (What-If)** starts **pre-filled with Today (partial)** values so you can tweak scenarios quickly.
-    """,
-    unsafe_allow_html=True,
+st.caption(
+    "Choose an input mode. All timestamps and data are **UTC**. "
+    "Kraken `/OHLC` provides **daily candles** (we pre-fill `open` → for `body = close - open`). "
+    "Daily `close` and `volume` come from the same OHLC. "
+    "You can edit any value below.  \n\n"
+    "👉 **Manual (What-If)** starts pre-filled with **Today (partial)** values."
 )
 
-# ---- Helpers ---------------------------------------------------------------
+# ---------- helpers ----------
 
-def safe_get(series, idx, default=np.nan):
-    """Return series.iloc[idx] if possible, else default."""
+def safe_get(series, idx, default=np.nan) -> float:
+    """Return series.iloc[idx] if possible, else default (as float)."""
     try:
         return float(series.iloc[idx])
     except Exception:
         return float(default)
 
-def build_inputs_from_indices(df_daily: pd.DataFrame, df_ohlc4d: pd.DataFrame,
-                              idx_today_daily: int, idx_open_ohlc: int):
+def build_inputs_from_indices(df_daily: pd.DataFrame, idx_today: int):
     """
-    Build the 7 RAW inputs using:
-      - df_daily: daily close & volume (10 days)
-      - df_ohlc4d: 4-day OHLC to get 'open' for 'body'
-      - idx_today_daily: index for 'today' (daily)
-      - idx_open_ohlc: index in 4-day OHLC that best aligns with 'today' (approx; user can edit)
-    Returns a dict with keys expected by the API plus _open_t for transparency.
+    Build the 7 RAW inputs using the daily OHLC frame `df_daily`.
+    - close/volume from `df_daily`
+    - body = close - open (same row)
+    - lags from prior rows
+    - timeHigh_year = current UTC year
     """
-    
-    # Daily features (close & volume) — from df_daily (10-day daily series)
-    close_t   = safe_get(df_daily["close"],  idx_today_daily)
-    volume_t  = safe_get(df_daily["volume"], idx_today_daily)
-    close_lag1 = safe_get(df_daily["close"],  idx_today_daily - 1)
-    close_lag3 = safe_get(df_daily["close"],  idx_today_daily - 3)
-    close_lag7 = safe_get(df_daily["close"],  idx_today_daily - 7)
+    close_t   = safe_get(df_daily["close"],  idx_today)
+    volume_t  = safe_get(df_daily["volume"], idx_today)
+    open_t    = safe_get(df_daily["open"],   idx_today)
 
-    
-    # Open for 'body' — from 4-day OHLC (approximation; user can edit)
-    open_t = safe_get(df_ohlc4d["open"], idx_open_ohlc)
-    body   = float(close_t - open_t) if np.isfinite(open_t) and np.isfinite(close_t) else np.nan
+    close_lag1 = safe_get(df_daily["close"], idx_today - 1)
+    close_lag3 = safe_get(df_daily["close"], idx_today - 3)
+    close_lag7 = safe_get(df_daily["close"], idx_today - 7)
 
-    # Year (UTC)
-    timeHigh_year = datetime.now(timezone.utc).year
+    body = float(close_t - open_t) if np.isfinite(open_t) and np.isfinite(close_t) else np.nan
+    year = datetime.now(timezone.utc).year
 
     return {
         "close_lag1": close_lag1,
         "close_lag3": close_lag3,
         "close_lag7": close_lag7,
         "body": body,
-        "timeHigh_year": timeHigh_year,
+        "timeHigh_year": int(year),
         "close": close_t,
         "volume": volume_t,
-        "_open_t": open_t,  # exposed so users can see/tweak 'body'
+        "_open_t": open_t,  # exposed for UI reference
     }
 
-def num_input(label: str, value: float, key: str | None = None):
+def fmt_money(x: float) -> str:
+    """Format with thousands separator and 2 decimals."""
+    try:
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "—"
+
+def preview(value, prefix="↳ "):
+    """Small, subdued one-line preview under an input (commas, 2 decimals)."""
+    st.caption(f"{prefix}{fmt_money(value)}")
+
+def num_input_with_preview(label: str, key: str, value: float, step: float = 0.01):
     """
-    Render a numeric input with 2 decimals and a small comma-formatted preview below.
-    Returns the float value.
+    Render a Streamlit number_input (raw numeric, no commas) and a pretty preview below it.
+    Returns the numeric value.
     """
-    v = st.number_input(label, value=float(value), format="%.2f", key=key)
-    st.caption(f"↳ {v:,.2f}")
+    v = st.number_input(label, key=key, value=float(value), step=step, format="%.2f")
+    preview(v)
     return v
 
-# ---- Guard: ensure data exists --------------------------------------------
+# ---------- guards & presets ----------
 
-if ('df10' not in locals()) or df10.empty or ('df_full' not in locals()) or df_full.empty:
-    st.warning("⚠️ Not enough data to pre-fill inputs. Ensure both daily (`df10`) and OHLC (`df_full`) fetches succeeded.")
+if ('df_full' not in locals()) or df_full.empty:
+    st.warning("⚠️ Not enough data to pre-fill inputs. Make sure Kraken daily OHLC (`df_full`) loaded.")
 else:
-    # Indices for daily series (df10): last row = 'today (partial)', previous row = 'yesterday (complete)'
-    idx_today_daily = len(df10) - 1
-    idx_yday_daily  = len(df10) - 2
+    # df_full is daily OHLC; last row is 'today (partial)'
+    idx_today  = len(df_full) - 1
+    idx_yday   = len(df_full) - 2
 
-    # Indices for 4-day OHLC (df_full): last row is most recent candle
-    idx_today_ohlc4d = len(df_full) - 1
-    idx_yday_ohlc4d  = len(df_full) - 2
+    # Build presets
+    preset_today = build_inputs_from_indices(df_full, idx_today)
+    preset_yday  = build_inputs_from_indices(df_full, idx_yday)
+    preset_man   = preset_today.copy()  # Manual starts from today’s values
 
-    # Pre-build the three presets
-    preset_yday  = build_inputs_from_indices(df10, df_full, idx_yday_daily,  idx_yday_ohlc4d)
-    preset_today = build_inputs_from_indices(df10, df_full, idx_today_daily, idx_today_ohlc4d)
-    preset_man   = preset_today.copy()  # Manual starts from today's (partial) values
-
-    # --- UI: tabs for the three modes --------------------------------------
+    # ---------- tabs ----------
     t1, t2, t3 = st.tabs([
         "📅 Yesterday → Predict Today (complete)",
         "🟡 Today (partial) → Predict Tomorrow (estimate)",
-        "✍️ Manual (What-If)",
+        "✍️ Manual (What-If)"
     ])
 
-    # ===== Tab 1: Yesterday (complete day) =====
+    # ===== Tab 1: Yesterday (complete) =====
     with t1:
-        st.caption("Uses yesterday’s completed daily data. Best for a clean, reproducible prediction.")
+        st.caption("Uses **yesterday’s** completed daily candle for a clean, reproducible prediction.")
         c1, c2, c3 = st.columns(3)
-        with c1:
-            close_lag1_t1 = num_input("close_lag1", preset_yday["close_lag1"])
-            close_lag3_t1 = num_input("close_lag3", preset_yday["close_lag3"])
-            close_lag7_t1 = num_input("close_lag7", preset_yday["close_lag7"])
-        with c2:
-            open_t1 = num_input("open (for body)", preset_yday["_open_t"])
-            close_t1 = num_input("close", preset_yday["close"])
-            body_t1  = num_input("body = close - open", preset_yday["body"])
-        with c3:
-            volume_t1 = num_input("volume", preset_yday["volume"])
-            timeHigh_year_t1 = st.number_input("timeHigh_year", value=int(preset_yday["timeHigh_year"]), step=1, format="%d")
-            st.caption(f"↳ {int(timeHigh_year_t1)}")
 
-        # Persist inputs for the next step (prediction call)
+        with c1:
+            close_lag1_t1 = num_input_with_preview("close_lag1", "t1_l1", preset_yday["close_lag1"])
+            close_lag3_t1 = num_input_with_preview("close_lag3", "t1_l3", preset_yday["close_lag3"])
+            close_lag7_t1 = num_input_with_preview("close_lag7", "t1_l7", preset_yday["close_lag7"])
+        with c2:
+            open_t1  = num_input_with_preview("open (for body)", "t1_open", preset_yday["_open_t"])
+            close_t1 = num_input_with_preview("close", "t1_close", preset_yday["close"])
+            body_t1  = num_input_with_preview("body = close - open", "t1_body", preset_yday["body"])
+        with c3:
+            volume_t1 = num_input_with_preview("volume", "t1_vol", preset_yday["volume"])
+            year_t1   = st.number_input("timeHigh_year", key="t1_year",
+                                        value=int(preset_yday["timeHigh_year"]), step=1, format="%d")
+            st.caption(f"↳ {year_t1:,}")
+
         st.session_state["inputs_yday"] = {
             "close_lag1": close_lag1_t1,
             "close_lag3": close_lag3_t1,
             "close_lag7": close_lag7_t1,
             "body": body_t1,
-            "timeHigh_year": int(timeHigh_year_t1),
+            "timeHigh_year": int(year_t1),
             "close": close_t1,
             "volume": volume_t1,
         }
 
     # ===== Tab 2: Today (partial) =====
     with t2:
-        st.caption("Uses today’s **partial** data (intraday). Values may change before the day closes.")
+        st.caption("Uses **today’s partial** intraday candle. Values may change before day close.")
         c1, c2, c3 = st.columns(3)
+
         with c1:
-            close_lag1_t2 = num_input("close_lag1", preset_today["close_lag1"], key="t2_l1")
-            close_lag3_t2 = num_input("close_lag3", preset_today["close_lag3"], key="t2_l3")
-            close_lag7_t2 = num_input("close_lag7", preset_today["close_lag7"], key="t2_l7")
+            close_lag1_t2 = num_input_with_preview("close_lag1", "t2_l1", preset_today["close_lag1"])
+            close_lag3_t2 = num_input_with_preview("close_lag3", "t2_l3", preset_today["close_lag3"])
+            close_lag7_t2 = num_input_with_preview("close_lag7", "t2_l7", preset_today["close_lag7"])
         with c2:
-            open_t2 = num_input("open (for body)", preset_today["_open_t"], key="t2_open")
-            close_t2 = num_input("close", preset_today["close"], key="t2_close")
-            body_t2  = num_input("body = close - open", preset_today["body"], key="t2_body")
+            open_t2  = num_input_with_preview("open (for body)", "t2_open", preset_today["_open_t"])
+            close_t2 = num_input_with_preview("close", "t2_close", preset_today["close"])
+            body_t2  = num_input_with_preview("body = close - open", "t2_body", preset_today["body"])
         with c3:
-            volume_t2 = num_input("volume", preset_today["volume"], key="t2_vol")
-            timeHigh_year_t2 = st.number_input("timeHigh_year", value=int(preset_today["timeHigh_year"]), step=1, format="%d", key="t2_year")
-            st.caption(f"↳ {int(timeHigh_year_t2)}")
+            volume_t2 = num_input_with_preview("volume", "t2_vol", preset_today["volume"])
+            year_t2   = st.number_input("timeHigh_year", key="t2_year",
+                                        value=int(preset_today["timeHigh_year"]), step=1, format="%d")
+            st.caption(f"↳ {year_t2:,}")
 
         st.session_state["inputs_today"] = {
             "close_lag1": close_lag1_t2,
             "close_lag3": close_lag3_t2,
             "close_lag7": close_lag7_t2,
             "body": body_t2,
-            "timeHigh_year": int(timeHigh_year_t2),
+            "timeHigh_year": int(year_t2),
             "close": close_t2,
             "volume": volume_t2,
         }
 
     # ===== Tab 3: Manual (What-If) =====
     with t3:
-        st.caption("Starts pre-filled with Today (partial) values. Edit freely to test hypothetical scenarios.")
+        st.caption("Starts pre-filled with **Today (partial)** values. Edit freely to test hypothetical scenarios.")
         c1, c2, c3 = st.columns(3)
+
         with c1:
-            close_lag1_m = num_input("close_lag1", preset_man["close_lag1"], key="m_l1")
-            close_lag3_m = num_input("close_lag3", preset_man["close_lag3"], key="m_l3")
-            close_lag7_m = num_input("close_lag7", preset_man["close_lag7"], key="m_l7")
+            close_lag1_m = num_input_with_preview("close_lag1", "m_l1", preset_man["close_lag1"])
+            close_lag3_m = num_input_with_preview("close_lag3", "m_l3", preset_man["close_lag3"])
+            close_lag7_m = num_input_with_preview("close_lag7", "m_l7", preset_man["close_lag7"])
         with c2:
-            open_m = num_input("open (for body)", preset_man["_open_t"], key="m_open")
-            close_m = num_input("close", preset_man["close"], key="m_close")
-            body_m  = num_input("body = close - open", preset_man["body"], key="m_body")
+            open_m  = num_input_with_preview("open (for body)", "m_open", preset_man["_open_t"])
+            close_m = num_input_with_preview("close", "m_close", preset_man["close"])
+            body_m  = num_input_with_preview("body = close - open", "m_body", preset_man["body"])
         with c3:
-            volume_m = num_input("volume", preset_man["volume"], key="m_vol")
-            timeHigh_year_m = st.number_input("timeHigh_year", value=int(preset_man["timeHigh_year"]), step=1, format="%d", key="m_year")
-            st.caption(f"↳ {int(timeHigh_year_m)}")
+            volume_m = num_input_with_preview("volume", "m_vol", preset_man["volume"])
+            year_m   = st.number_input("timeHigh_year", key="m_year",
+                                       value=int(preset_man["timeHigh_year"]), step=1, format="%d")
+            st.caption(f"↳ {year_m:,}")
 
         st.session_state["inputs_manual"] = {
             "close_lag1": close_lag1_m,
             "close_lag3": close_lag3_m,
             "close_lag7": close_lag7_m,
             "body": body_m,
-            "timeHigh_year": int(timeHigh_year_m),
+            "timeHigh_year": int(year_m),
             "close": close_m,
             "volume": volume_m,
         }
 
-    st.info("Inputs are prepared. In the next step we’ll add the **Predict** buttons that call FastAPI using the values above.")
+    st.info("Inputs are prepared. Next: run predictions (buttons) using these values.")
+
 
 
 # %%
@@ -745,7 +831,7 @@ if "panel_results" not in st.session_state:
     st.session_state["panel_results"] = {}  # {mode_title: last_result_dict}
 
 # ------------------------------- 4) UI Panels --------------------------------
-st.subheader("Run Prediction")
+st.markdown("# Run Prediction")
 
 def panel(mode_title: str, payload_key: str, disclaimer: str | None = None):
     """
@@ -753,8 +839,7 @@ def panel(mode_title: str, payload_key: str, disclaimer: str | None = None):
     • On click: call API, draw fresh results, save to session, append to history, RETURN EARLY.
     • On normal rerun: render last saved result once (no duplicates).
     """
-    st.markdown("----")
-    st.markdown(f"### {mode_title}")
+    st.markdown(f"#### {mode_title}")
     if disclaimer:
         st.caption(disclaimer)
 
@@ -826,4 +911,3 @@ if st.session_state["pred_history"]:
         with st.expander("Inputs used"):
             st.json(h["payload"])
         st.markdown("---")
-
