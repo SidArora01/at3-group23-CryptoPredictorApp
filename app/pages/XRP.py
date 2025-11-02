@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(__file__)
 APP_DIR = os.path.dirname(BASE_DIR) 
 ########################################### Page config ################################################
 
-st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout="centered")
+st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout="wide")
 
 
 ################################# Light CSS adjustments (theme adaptive) ###############################
@@ -17,10 +17,75 @@ st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout=
 
 st.markdown("""
 <style>
-/* Use theme variables */
-html, body, [class*="css"] {
-  color: var(--text-color) !important;
-  background-color: var(--background-color) !important;
+/* Body & background */
+body {
+    background: linear-gradient(135deg, #1f1c2c, #282843);
+    color: #f0f0f0;
+}
+
+/* Fonts */
+h1, h2, h3 {
+    font-family: 'Poppins', sans-serif;
+}
+p {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+/* Crypto cards */
+.crypto-card {
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+    text-align: center;
+    background-color: #2a2a3e;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.crypto-card:hover {
+    transform: scale(1.05);
+}
+
+/* Images hover effect */
+.crypto-card img {
+    border-radius: 15px;
+    transition: transform 0.3s ease-in-out;
+}
+.crypto-card img:hover {
+    transform: scale(1.05);
+}
+
+/* Buttons */
+.stButton>button {
+    background: linear-gradient(45deg, #ff9900, #ff6600);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+.stButton>button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(255, 153, 0, 0.6);
+}
+
+/* Section header */
+.section-header {
+    background-color: #3a3a55;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+.section-header h2 {
+    color: #ff9900;
+    margin: 0;
+}
+.section-header p {
+    color: #ffffff;
+    margin: 5px 0 0 0;
 }
 
 /* Status box (top-right) */
@@ -126,7 +191,9 @@ st.markdown("""
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 ##--Title and icon
-st.markdown("<h1 style='text-align:center;'>XRP — Next-Day High Prediction</h1>", unsafe_allow_html=True)
+st.markdown('<div class="section-header"><h2>Ripple (XRP) Dashboard</h2><p>Fast, scalable digital asset for global payments (all times <b>UTC</b>)</p></div>', unsafe_allow_html=True)
+
+
 
 def _img_b64(path):
     with open(path, "rb") as f: return base64.b64encode(f.read()).decode()
@@ -136,22 +203,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Fast, scalable digital asset for global payments (all times <b>UTC</b>)</p>", unsafe_allow_html=True)
 
 #---Intro
-st.markdown("""
-<div style='text-align:justify;padding:0 40px;max-width:700px;margin:auto;'>
-XRP is a digital asset built for payments, enabling fast and efficient value transfer across the globe.
+st.write("""
+**XRP** is a digital asset built for payments, enabling fast and efficient value transfer across the globe.
 It runs on the XRP Ledger, a decentralised, open-source blockchain that supports low-cost transactions
-and energy efficiency.
-</div>
-<br>
-<div style='text-align:right;max-width:600px;margin:auto;color:var(--secondary-text-color,#aaa);font-size:13px;'>
-Adapted from the <a href='https://xrpl.org' target='_blank' style='color:#8ab4f8;'>XRPL Dev Portal</a> (MIT Licensed)
-</div>
-""", unsafe_allow_html=True)
+and energy efficiency."""
+)
 
-st.markdown("<br>", unsafe_allow_html=True)
+
 st.markdown("---")
 
 
@@ -159,14 +219,17 @@ st.markdown("---")
 ##---------------------- Window selection, refresh button and cooldown
 
 #Section header with info tooltip 
+
+
+st.markdown('<div class="section-header"><h2>Price History</h2><p></p></div>', unsafe_allow_html=True)
 st.markdown("""
 <div style='display:flex;justify-content:space-between;align-items:center;'>
-  <h3 style='margin-bottom:0;'>Price history</h3>
   <span title="Day - 1-hour candles (last 24h)&#10;Week - 4-hour candles (last 7 days)&#10;Month - Daily closes (last 30 days)&#10;Year - Weekly closes (last 52 weeks)"
         style="cursor:help;font-size:18px;opacity:.75;">ℹ️</span>
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown("")
 #buttons alignment, left: windows, right: refresh
 left, right = st.columns([1, 0.22])
 
@@ -301,7 +364,8 @@ st.markdown("---")
 ####################################### Prediction ######################################
 ## ---------------- calls model API and renders styled prediction card
 
-st.subheader("Prediction")
+st.markdown('<div class="section-header"><h2>Prediction</h2><p></p></div>', unsafe_allow_html=True)
+
 COOLDOWN_SEC = 300  #5 minutes
 
 ##initialise session state for storing last prediction and timestamp 
