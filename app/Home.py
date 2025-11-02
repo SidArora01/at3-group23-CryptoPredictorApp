@@ -178,10 +178,10 @@ st.markdown(
 col1, col2, col3, col4 = st.columns(4, gap="large") 
 # Bitcoin 
 with col1: 
-    bitcoin = os.path.join(BASE_DIR, "assets", "bitcoin.jpg") 
+    bitcoin = os.path.join(BASE_DIR, "assets", "btc.png") 
     st.image(bitcoin) 
     st.write("") 
-    if st.button("Bitcoin"): 
+    if st.button("Bitcoin", use_container_width=True): 
         st.switch_page("pages/Bitcoin.py") 
         
 # Ethereum 
