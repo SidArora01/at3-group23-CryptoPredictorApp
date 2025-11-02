@@ -44,7 +44,7 @@ with col1:
     st.image(bitcoin)
     st.write("")  # spacing
     if st.button("Bitcoin", use_container_width=True):
-        st.switch_page("pages/Bitcoin.py")
+        st.switch_page("Bitcoin")
 
 # Ethereum
 with col2:
@@ -52,7 +52,8 @@ with col2:
     st.image(eth)
     st.write("")
     if st.button("Ethereum", use_container_width=True):
-        st.switch_page("pages/Ethereum.py")
+        eth_tab = os.path.join(BASE_DIR, "pages", "Ethereum.py")
+        st.switch_page(eth_tab)
 
 # XRP 
 with col3:
@@ -60,7 +61,8 @@ with col3:
     st.image(xrp)
     st.write("")
     if st.button("XRP", use_container_width=True):
-        st.switch_page("pages/XRP.py")
+        xrp_tab = os.path.join(BASE_DIR, "pages", "xrp.py")
+        st.switch_page(xrp_tab)
     
 # Solana
 with col4:
@@ -68,7 +70,8 @@ with col4:
     st.image(sol)
     st.write("")
     if st.button("Solana", use_container_width=True):
-        st.switch_page("pages/Solana.py")
+        sol_tab = os.path.join(BASE_DIR, "pages", "Solana.py")
+        st.switch_page(sol_tab)
 
 # PROJECT INFO
 st.markdown("---")
