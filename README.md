@@ -120,8 +120,7 @@ The XRP.py page is a dedicated dashboard for Ripple (XRP).
 
 3. Machine Learning Predictions
 
-    - Predicts next-day HIGH price for XRP.
-    - Predicted next-day HIGH price (USD)
+    - Predicts next-day HIGH price for XRP (USD)
     - Δ vs last close (both % and arrow indicator ▲/▼)
     - Prediction date and generation timestamp in UTC
     - Styled prediction card for clarity and responsive layout.
