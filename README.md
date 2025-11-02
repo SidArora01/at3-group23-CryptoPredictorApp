@@ -202,6 +202,6 @@ Created by: Siddharth Arora (25106954) Email: siddharth.arora@student.uts.edu.au
 
 Created by: Alison Barbosa Guzman (25664525) Email: alison.barbosaguzman@student.uts.edu.au GitHub: alibg3
 
-Created by: Victor Garcia Ortiz () Email: siddharth.arora@student.uts.edu.au GitHub: vgarciachile
+Created by: Victor Garcia Ortiz (10522504) Email: Victor.garciaortiz@student.uts.edu.au  GitHub: vgarciachile
 
-Created by: Britney Odria () Email: siddharth.arora@student.uts.edu.au GitHub: britodri007
+Created by: Britney Odria (14131609) Email: Britney.R.Odria@student.uts.edu.au GitHub: britodri007
