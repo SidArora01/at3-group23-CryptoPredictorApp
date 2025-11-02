@@ -1,0 +1,77 @@
+#Home
+import streamlit as st
+from datetime import date
+
+st.set_page_config(
+    page_title="Cryptocurrency Prediction Dashboard",
+    page_icon="🪙",
+    layout="centered"
+)
+
+# HEADER SECTION
+# title
+st.title ("Real-Time Cryptocurrency Prediction Hub")
+# sub-heading
+st.subheader("Experience the Power of Machine Learning to Reveal Tomorrow's Market Trends Today")
+# welcome message 
+st.markdown(
+    """
+    Welcome to the Hub! Ready to dive into the world of crypto? We’ve built an interactive data product designed to **analyze and predict** the short-term performance of today’s most popular cryptocurrencies.  
+    """
+)
+
+# VISUAL REPRESENTATION 
+st.image("assets/image2.jpg")
+
+
+#INSTRUCTIONS FOR THE USER
+st.markdown(
+    """ 
+    Select any cryptocurrency to explore its **historical trends**, **key metrics**, and **next-day high price predictions** — all powered by machine learning models.
+    """
+)
+
+
+
+# crypto coin selection
+col1, col2, col3, col4 = st.columns(4, gap="large")
+# Bitcoin
+with col1:
+    st.image("assets/bitcoin.jpg", width=200)
+    st.write("")  # spacing
+    if st.button("Bitcoin", use_container_width=True):
+        st.switch_page("pages/Bitcoin.py")
+
+# Ethereum
+with col2:
+    st.image("assets/ethereum.jpg", width=200)
+    st.write("")
+    if st.button("Ethereum", use_container_width=True):
+        st.switch_page("pages/Ethereum.py")
+
+# XRP 
+with col3:
+    st.image("assets/xrp.jpg", width=200)
+    st.write("")
+    if st.button("XRP", use_container_width=True):
+        st.switch_page("pages/XRP.py")
+    
+# Solana
+with col4:
+    st.image("assets/solana.jpg", width=200)
+    st.write("")
+    if st.button("Solana", use_container_width=True):
+        st.switch_page("pages/Solana.py")
+
+# PROJECT INFO
+st.markdown("---")
+st.markdown("Project Info")
+st.markdown(
+    """
+    This project focuses on four major cryptocurrencies — **Bitcoin (BTC)**, **Ethereum (ETH)**, **XRP**, and **Solana (SOL)**. It integrates live data from **Kraken**, **CoinGecko**, **TokenMetrics**, and **CoinDesk APIs** to provide accurate and up-to-date market insights. Each cryptocurrency is supported by a distinct **machine learning model** developed by individual team members, aimed at predicting the next-day high price with precision. The application is built using **Streamlit** for interactivity, **FastAPI** for model deployment, and **Python 3.11.4** as the core development framework, delivering a seamless and intelligent data-driven experience.
+    """
+)
+
+st.markdown("---")
+st.caption(f"Last updated: {date.today().strftime('%B %d, %Y')} | UTS 36120 AT3 - Data Product with Machine Learning")
+
