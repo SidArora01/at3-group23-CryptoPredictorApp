@@ -176,7 +176,7 @@ cd app
 streamlit run Home.py
 ```
 The app will open in your default browser at http://localhost:8501.
-Navigate between cryptocurrencies using the buttons on the homepage or on the nav bar in the left side
+Navigate between cryptocurrencies using the buttons on the homepage or on the navigation bar in the left side
 
 
 ## Dependencies
