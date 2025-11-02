@@ -14,6 +14,7 @@ import altair as alt
 import streamlit as st
 
 # --- Page config ---
+st.set_page_config(page_title="Bitcoin Dashboard", page_icon="₿", layout="wide")
 
 st.markdown("""
 <style>
@@ -91,7 +92,7 @@ p {
 """, unsafe_allow_html=True)
 
 
-st.set_page_config(page_title="Bitcoin Dashboard", page_icon="₿", layout="wide")
+
 
 os.environ["SERVICE_BTC_PREDICT_URL"] = "https://btc-high-api.onrender.com/predict/bitcoin"
 
