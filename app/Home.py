@@ -198,7 +198,7 @@ with col3:
     st.image(xrp) 
     st.write("") 
     if st.button("XRP", use_container_width=True): 
-        st.switch_page("pages/XRP.py") 
+        st.switch_page("pages/Ripple.py") 
 
 # Solana 
 with col4: 
