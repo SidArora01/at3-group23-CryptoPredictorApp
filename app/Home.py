@@ -41,7 +41,7 @@ col1, col2, col3, col4 = st.columns(4, gap="large")
 # Bitcoin
 with col1:
     bitcoin = os.path.join(BASE_DIR, "assets", "bitcoin.jpg")
-    st.image(bitcoin, use_container_width=True)
+    st.image(bitcoin)
     st.write("")  # spacing
     if st.button("Bitcoin", use_container_width=True):
         st.switch_page("pages/Bitcoin.py")
@@ -49,7 +49,7 @@ with col1:
 # Ethereum
 with col2:
     eth = os.path.join(BASE_DIR, "assets", "ethereum.jpg")    
-    st.image(eth, use_container_width=True)
+    st.image(eth)
     st.write("")
     if st.button("Ethereum", use_container_width=True):
         st.switch_page("pages/Ethereum.py")
@@ -57,7 +57,7 @@ with col2:
 # XRP 
 with col3:
     xrp = os.path.join(BASE_DIR, "assets", "xrp.jpg")
-    st.image(xrp,use_container_width=True)
+    st.image(xrp)
     st.write("")
     if st.button("XRP", use_container_width=True):
         st.switch_page("pages/XRP.py")
@@ -65,7 +65,7 @@ with col3:
 # Solana
 with col4:
     sol = os.path.join(BASE_DIR, "assets", "solana.jpg")
-    st.image(sol, use_container_width=True)
+    st.image(sol)
     st.write("")
     if st.button("Solana", use_container_width=True):
         st.switch_page("pages/Solana.py")
