@@ -44,7 +44,7 @@ with col1:
     st.image(bitcoin)
     st.write("")  # spacing
     if st.button("Bitcoin", use_container_width=True):
-        st.switch_page("Bitcoin")
+        st.switch_page("pages/Bitcoin.py")
 
 # Ethereum
 with col2:
