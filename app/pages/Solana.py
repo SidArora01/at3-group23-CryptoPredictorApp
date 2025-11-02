@@ -3,21 +3,100 @@ import requests
 import pandas as pd
 import altair as alt
 import streamlit as st
-from datetime import datetime, timezone
+from datetime import datetime, timezone,date
+import plotly
 
 # Page Setup 
-st.set_page_config(page_title="Solana Dashboard", page_icon="🪙", layout="centered")
+st.set_page_config(page_title="Solana Dashboard", page_icon="🪙", layout="wide")
+
+st.markdown("""
+<style>
+/* Body & background */
+body {
+    background: linear-gradient(135deg, #1f1c2c, #282843);
+    color: #f0f0f0;
+}
+
+/* Fonts */
+h1, h2, h3 {
+    font-family: 'Poppins', sans-serif;
+}
+p {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+/* Crypto cards */
+.crypto-card {
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+    text-align: center;
+    background-color: #2a2a3e;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.crypto-card:hover {
+    transform: scale(1.05);
+}
+
+/* Images hover effect */
+.crypto-card img {
+    border-radius: 15px;
+    transition: transform 0.3s ease-in-out;
+}
+.crypto-card img:hover {
+    transform: scale(1.05);
+}
+
+/* Buttons */
+.stButton>button {
+    background: linear-gradient(45deg, #ff9900, #ff6600);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+.stButton>button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(255, 153, 0, 0.6);
+}
+
+/* Section header */
+.section-header {
+    background-color: #3a3a55;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+.section-header h2 {
+    color: #ff9900;
+    margin: 0;
+}
+.section-header p {
+    color: #ffffff;
+    margin: 5px 0 0 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+
 BASE_DIR = os.path.dirname(__file__)
 APP_DIR = os.path.dirname(BASE_DIR) 
 
-col1, col2, col3 = st.columns([1, 2, 1])
+
+st.markdown('<div class="section-header"><h2>Solana Dashboard</h2><p>A high performance blockchain for decentralized apps</p></div>', unsafe_allow_html=True)
+col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
-    st.title("Solana (SOL)")
     sol = os.path.join(APP_DIR, "assets", "solana.jpg")
     st.image(sol)
 
 
-st.subheader("A high performance blockchain for decentralized apps")
 st.write("""
 **Solana (SOL)** is a high-performance public blockchain that can process thousands of transactions per second
 with minimal fees. This type of cryptocurrency is particularly popular in gaming, NFTs, and decentralized finance projects.
@@ -41,102 +120,71 @@ def get_sol_ohlc(days: int = 90):
         st.warning(f"Could not fetch OHLC data: {e}")
         return pd.DataFrame()
 
-df_ohlc = get_sol_ohlc(90)
-if not df_ohlc.empty:
-    st.header("Historical Trends")
-    st.write("Take a look at how Solana’s price has changed over time to get a feel for its market journey.")
 
-    # --- Info box ---
-    st.markdown(
-        """
-        <div style='background-color:#e3f2fd; padding:10px 15px; border-radius:8px;'>
-        <p style='color:#0d47a1; font-size:14px; margin:0;'>
-        💡 Price movements of <b>Solana</b> over the past ~90 days (from CoinGecko). 
-        All times are in UTC.
-        </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+# Fetch both timeframes
+df_3m = get_sol_ohlc(90)
+df_1y = get_sol_ohlc(365)
 
-    df_ohlc["date"] = df_ohlc["timestamp"].dt.date
+# Function to create a Plotly candlestick
+def plot_candlestick(df, title):
+    import plotly.graph_objects as go
 
-    base = alt.Chart(df_ohlc).encode(
-        x=alt.X(
-            "date:T",
-            title="Date (UTC)",
-            axis=alt.Axis(
-                labelAngle=-35,
-                labelFontSize=11,
-                titleFontSize=12,
-                labelColor="black",
-                titleColor="black",
-                grid=False
+    if df.empty:
+        st.warning("No data available for this period.")
+        return
+
+    fig = go.Figure(
+        data=[
+            go.Candlestick(
+                x=df["timestamp"],
+                open=df["open"],
+                high=df["high"],
+                low=df["low"],
+                close=df["close"],
+                increasing_line_color="#2ecc71",  # green
+                decreasing_line_color="#e74c3c",  # red
+                name="Solana"
             )
-        )
+        ]
     )
 
-    # Line Chart
-    line = (
-        base.transform_fold(
-            ["open", "high", "low", "close"], as_=["Type", "Price (USD)"]
-        )
-        .mark_line(point=alt.OverlayMarkDef(size=25, filled=True, fillOpacity=0.25), strokeWidth=2.2)
-        .encode(
-            y=alt.Y(
-                "Price (USD):Q",
-                title="Price (USD)",
-                axis=alt.Axis(
-                    labelFontSize=11,
-                    titleFontSize=12,
-                    labelColor="black",
-                    titleColor="black",
-                    gridColor="#e0e0e0"
-                ),
-                scale=alt.Scale(
-                    domain=[
-                        df_ohlc[["open", "high", "low", "close"]].min().min() - 10,
-                        df_ohlc[["open", "high", "low", "close"]].max().max() + 10,
-                    ]
-                )
-            ),
-            color=alt.Color(
-                "Type:N",
-                title=None,
-                scale=alt.Scale(
-                    domain=["open", "high", "low", "close"],
-                    range=["#007bff", "#2ecc71", "#e74c3c", "#f39c12"],  # blue, green, red, gold
-                ),
-                legend=alt.Legend(
-                    orient="right",
-                    labelFontSize=12,
-                    labelColor="black",
-                    symbolSize=130,
-                ),
-            ),
-            tooltip=[
-                alt.Tooltip("date:T", title="Date"),
-                alt.Tooltip("Type:N", title="Metric"),
-                alt.Tooltip("Price (USD):Q", title="Value", format="$.2f"),
-            ],
-        )
-    )
-
-    chart = line.properties(
+    fig.update_layout(
+        title=title,
+        xaxis_title="Date (UTC)",
+        yaxis_title="Price (USD)",
+        xaxis_rangeslider_visible=False,
+        template="plotly_white",
         height=420,
-        width="container",
-        background="white"
-    ).configure_view(
-        strokeOpacity=0
-    ).configure_axis(
-        labelColor="black",
-        titleColor="black",
+        margin=dict(l=40, r=40, t=60, b=40),
+        font=dict(family="Arial", size=12, color="black"),
+        title_font=dict(size=18, color="black", family="Arial"),
     )
 
-    st.altair_chart(chart.interactive(), use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
-else:
-    st.warning("Unable to load Solana price data for historical trends.")
+
+# --- Header ---
+st.markdown('<div class="section-header"><h2>Historical Trend</h2></div>', unsafe_allow_html=True)
+
+st.write("Take a look at how Solana’s price has changed over time to get a feel for its market journey.")
+
+st.markdown(
+    """
+    <div style='background-color:#e3f2fd; padding:10px 15px; border-radius:8px;'>
+    <p style='color:#0d47a1; font-size:14px; margin:0;'>
+    Price movements of <b>Solana</b> from CoinGecko. All times are in UTC.
+    </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- Charts ---
+st.subheader("Solana – Past 3 Months")
+plot_candlestick(df_3m, "")
+
+st.subheader("Solana – Past 1 Year")
+plot_candlestick(df_1y, "")
 
 st.markdown("---")
 
@@ -159,7 +207,9 @@ def get_sol_metrics():
     }
 
 # Key Market Metrics Display Section 
-st.header("Key Market Metrics")
+
+st.markdown('<div class="section-header"><h2>Key Market Metrics</h2></div>', unsafe_allow_html=True)
+
 st.write(
     "These live indicators show Solana’s overall market health, combining price, activity, and supply data to help you spot key market trends before generating predictions."
 )
@@ -254,106 +304,51 @@ except Exception as e:
 
 st.markdown("---")
 
-# Prediction Input
-st.header("Machine Learning Prediction")
+# Machine Learning Prediction
+
+st.markdown('<div class="section-header"><h2>Prediction of Tomorrows High Price</h2><p></p></div>', unsafe_allow_html=True)
+
 
 st.write("""
-Enter Solana’s recent market data below, or keep everything blank (0) and the FastAPI model will automatically pull live data from CoinGecko for prediction.
+Predict **Solana’s high price prediction for tomorrow** using the latest live market data 
+automatically pulled from **CoinGecko**. Click the button below to generate the prediction.
 """)
 
 predict_url = "https://at3-group23-solana-api.onrender.com/predict/SOL"
 
-with st.form("sol_predict_form"):
-    # --- Easier numeric navigation (practical step sizes and defaults) ---
-    close = st.number_input(
-        "Closing price (USD)",
-        min_value=0.0, max_value=500.0,   # ✅ allow 0.0
-        step=1.0, value=0.0, format="%.2f",
-        help="End-of-day SOL price. Usually around $150–$200."
-    )
-    open_ = st.number_input(
-        "Opening price (USD)",
-        min_value=0.0, max_value=500.0,   # ✅ allow 0.0
-        step=1.0, value=0.0, format="%.2f",
-        help="Start-of-day SOL price. Usually around $150–$200."
-    )
-    low = st.number_input(
-        "Lowest price (USD)",
-        min_value=0.0, max_value=500.0,   # ✅ allow 0.0
-        step=1.0, value=0.0, format="%.2f",
-        help="Lowest SOL price of the day. Typically $140–$180."
-    )
-    volume = st.number_input(
-        "Trading volume (USD)",
-        min_value=0.0, max_value=10_000_000_000.0,
-        step=100_000_000.0, value=0.0, format="%.0f",
-        help="Total USD value of SOL traded during the day (around 3 billion)."
-    )
-    marketCap = st.number_input(
-        "Market capitalization (USD)",
-        min_value=0.0, max_value=200_000_000_000.0,
-        step=5_000_000_000.0, value=0.0, format="%.0f",
-        help="Total market value of all circulating SOL tokens (around 100 billion)."
-    )
-    price_range = st.number_input(
-        "Price range (highest price - lowest price)",
-        min_value=0.0, max_value=100.0,
-        step=1.0, value=0.0, format="%.2f",
-        help="Difference between highest and lowest SOL price during the day (around 5–15)."
-    )
-    volume_per_marketcap = st.number_input(
-        "Volume / MarketCap ratio",
-        min_value=0.0, max_value=0.2,
-        step=0.005, value=0.0, format="%.4f",
-        help="Ratio of trading volume to market capitalization (usually 0.03–0.05)."
-    )
+# Big centered button
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    predict = st.button("Predict Tomorrow's High Price", use_container_width=True)
 
-    submitted = st.form_submit_button("Predict Next-Day High")
-
-# Prediction Logic
-if submitted:
-    # Only send fields with non-zero user-specified values
-    params = {
-        "close": close if close > 0 else None,
-        "open": open_ if open_ > 0 else None,
-        "low": low if low > 0 else None,
-        "volume": volume if volume > 0 else None,
-        "marketCap": marketCap if marketCap > 0 else None,
-        "price_range": price_range if price_range > 0 else None,
-        "volume_per_marketcap": volume_per_marketcap if volume_per_marketcap > 0 else None,
-    }
-    params = {k: v for k, v in params.items() if v is not None}
-
-    with st.spinner("Fetching prediction from Solana API..."):
+# Prediction logic
+if predict:
+    with st.spinner("Fetching latest data and predicting..."):
         try:
-            r = requests.get(predict_url, params=params, timeout=25)
+            r = requests.get(predict_url, timeout=25)
             if r.status_code == 200:
                 data = r.json()
-                st.success("Prediction successful!")
 
-                # Centered and larger predicted value
-                st.markdown(
-                    f"""
-                    <div style="text-align:center; margin-top:1rem;">
-                        <p style="font-size:18px; font-weight:600; margin-bottom:0;">Predicted Next-Day High (USD)</p>
-                        <p style="font-size:42px; font-weight:700; margin-top:0; color:#4CAF50;">
-                            ${data['predicted_next_day_high']:,.2f}
-                        </p>
-                        <p style="font-size:13px; color:gray;">
-                            As of {datetime.fromisoformat(data['as_of']).strftime('%Y-%m-%d %H:%M:%S UTC')}
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                #Compact vertical spacing for immediate result
+                st.write("")  # small space only
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.markdown(
+                        f"<h1 style='text-align:center; font-size:56px; font-weight:700; margin-top:10px; margin-bottom:4px;'>"
+                        f"${data['predicted_next_day_high']:,.2f}</h1>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
+                        f"<p style='text-align:center; font-size:15px; color:gray; margin-top:0;'>"
+                        f"Prediction generated as of {datetime.fromisoformat(data['as_of']).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                        f"</p>",
+                        unsafe_allow_html=True,
+                    )
 
-                with st.expander("Input Features Used"):
+                with st.expander("View Model Inputs"):
                     st.json(data["inputs_used"])
 
             else:
                 st.error(f"API Error {r.status_code}: {r.text[:300]}")
         except Exception as e:
             st.error(f"Failed to connect to API: {e}")
-
-st.markdown("---")
-st.caption("Tip: Leaving all fields blank will let the model fetch real-time CoinGecko data.")
