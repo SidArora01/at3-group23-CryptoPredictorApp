@@ -51,7 +51,7 @@ with col2:
     eth = os.path.join(BASE_DIR, "assets", "ethereum.jpg")    
     st.image(eth)
     st.write("")
-    if st.button("Ethereum", use_container_width=True):
+    if st.button("Ethereum"):
         eth_tab = os.path.join(BASE_DIR, "pages", "Ethereum.py")
         st.switch_page("Ethereum")
 
