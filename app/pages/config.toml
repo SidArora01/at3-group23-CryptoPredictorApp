@@ -1,0 +1,6 @@
+[tool.streamlit.pages]
+"Bitcoin" = "pages/bitcoin.py"
+"Ethereum" = "pages/eth.py"
+"Solana" = "pages/solana.py"
+"XRP" = "pages/xrp.py"
+"Metrics" = "pages/metrics.py"

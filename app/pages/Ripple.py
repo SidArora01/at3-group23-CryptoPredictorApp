@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(__file__)
 APP_DIR = os.path.dirname(BASE_DIR) 
 ########################################### Page config ################################################
 
-st.set_page_config(page_title="XRP — Next-Day High", page_icon="💠", layout="wide")
+st.set_page_config(page_title="XRP", page_icon="💠", layout="wide")
 
 
 ################################# Light CSS adjustments (theme adaptive) ###############################
