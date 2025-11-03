@@ -120,8 +120,7 @@ The XRP.py page is a dedicated dashboard for Ripple (XRP).
 
 3. Machine Learning Predictions
 
-    - Predicts next-day HIGH price for XRP.
-    - Predicted next-day HIGH price (USD)
+    - Predicts next-day HIGH price for XRP (USD)
     - Δ vs last close (both % and arrow indicator ▲/▼)
     - Prediction date and generation timestamp in UTC
     - Styled prediction card for clarity and responsive layout.
@@ -164,7 +163,7 @@ The Solana.py page is a dedicated dashboard for Solana (SOL).
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/CryptoPredictorApp.git
+(https://github.com/SidArora01/at3-group23-CryptoPredictorApp.git)
 cd CryptoPredictorApp
 poetry install
 poetry shell
@@ -177,7 +176,7 @@ cd app
 streamlit run Home.py
 ```
 The app will open in your default browser at http://localhost:8501.
-Navigate between cryptocurrencies using the buttons on the homepage or on the nav bar in the left side
+Navigate between cryptocurrencies using the buttons on the homepage or on the navigation bar in the left side
 
 
 ## Dependencies
@@ -202,6 +201,6 @@ Created by: Siddharth Arora (25106954) Email: siddharth.arora@student.uts.edu.au
 
 Created by: Alison Barbosa Guzman (25664525) Email: alison.barbosaguzman@student.uts.edu.au GitHub: alibg3
 
-Created by: Victor Garcia Ortiz () Email: siddharth.arora@student.uts.edu.au GitHub: vgarciachile
+Created by: Victor Garcia Ortiz (10522504) Email: Victor.garciaortiz@student.uts.edu.au  GitHub: vgarciachile
 
-Created by: Britney Odria () Email: siddharth.arora@student.uts.edu.au GitHub: britodri007
+Created by: Britney Odria (14131609) Email: Britney.R.Odria@student.uts.edu.au GitHub: britodri007
