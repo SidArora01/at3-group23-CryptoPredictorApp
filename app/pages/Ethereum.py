@@ -308,7 +308,7 @@ st.markdown("""
 <style>
 [data-testid="stMetricValue"] {
     font-size: 1.5rem;
-    color: #f5f5f5;
+    color: inherit; /* adapts to theme automatically */
 }
 [data-testid="stMetricDelta"] {
     font-weight: bold;
